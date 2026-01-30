@@ -67,21 +67,8 @@ This implementation solves the 2-D Poisson equation using:
 - Residual-based convergence criteria
 
 ---
+**Compile:**  g++ -O3 cg_solver_pre.cpp -o cg_solver
 
-## Software and Hardware
+**Run:**  
+`./cg_solver /path/to/poisson_dir
 
-- Compilers: g++, nvcc  
-- Parallelization: OpenMP, CUDA  
-- Precision: double  
-- Library: Eigen
-
----
-
-## Notes
-
-Dense matrix–vector multiplication benefits from regular memory access and higher
-arithmetic intensity, while sparse matrix–vector multiplication is dominated by
-irregular memory accesses and is therefore memory-bandwidth bound. PCG convergence
-degrades with grid refinement due to the increasing condition number of the
-Poisson operator.
-ihis repository contains implementation for 

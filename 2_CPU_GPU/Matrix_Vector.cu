@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
   //This is for verification with a CPU code 
   double y_norm = dot_product(y_host, y_host);
-  //printf ("Norm of result %.15e \n", sqrt(y_norm));
+  printf ("Norm of result %.15e \n", sqrt(y_norm));
 
   //Free CUDA memory
   cudaFree(A_device);
