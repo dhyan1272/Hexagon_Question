@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   for (int i = 0; i < n_row; ++i) {
     double row_sum = 0.0;
     // Use SIMD to exploit CPU vector units (AVX/AVX2)
-    #pragma omp simd reduction
+    #pragma omp simd reduction(+:row_sum)
     for (int j = 0; j < n_col; ++j) {
       row_sum += A[i * n_col + j] * x[j];
     }

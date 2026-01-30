@@ -36,11 +36,15 @@ Eigen (header-only). Clone using
 **Compile (serial):**  
 `g++ -O3 Matrix_Vector.cpp -o matvec_cpu`
 
-**Compile (OpenMP):**  
-`g++ -O3 -fopenmp Matrix_Vector.cpp -o matvec_cpu_omp`
-
 **Run:**  
 `./matvec_cpu /path/to/A_file /path/to/x_file matrix_size`
+
+**Compile (OpenMP):**  
+`g++ -O3 -fopenmp Matrix_Vector_OMP.cpp -o Exec
+
+**Run:** 
+  export OMP_NUM_THREADS=#THREADS 
+`./Exec /path/to/A_file /path/to/x_file rwo_size col_size
 
 ---
 
