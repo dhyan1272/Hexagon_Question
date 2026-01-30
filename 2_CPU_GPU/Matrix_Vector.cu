@@ -37,26 +37,61 @@ __global__ void matrixXvec_kernel(const double* A, const double* x, double* y, i
   y[i] = sum;
 }
 
+__global__ void matrixXvec_kernel_coalesced(const double* A, const double* x, double* y, int nrows, int ncols) {
+  // Each warp will handle one row
+  int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
+  int lane_id = threadIdx.x % 32; // ID within the warp (0-31)
+    
+  if (warp_id >= nrows) return;
+
+  double sum = 0.0;
+    
+  // All threads in the warp loop over the columns of row 'warp_id'
+  // with a stride of 32
+  for (int j = lane_id; j < ncols; j += 32) {
+    sum += A[warp_id * ncols + j] * x[j];
+  }
+
+  // Parallel Reduction: Sum the values held by all 32 threads in the warp
+  for (int offset = 16; offset > 0; offset /= 2) {
+    sum += __shfl_down_sync(0xffffffff, sum, offset);
+  }
+  // Thread 0 of the warp writes the final result
+  if (lane_id == 0) {
+    y[warp_id] = sum;
+  }
+}
+
 
 int main(int argc, char** argv) {
   
-  if(argc < 6){
-    std::cerr<<"Usage ./Exec /path/to/matrix_file /path/to/vector_file row_size col_size blockSize"<<std::endl;
+  if(argc < 7){
+    std::cerr<<"Usage ./Exec /path/to/matrix_file /path/to/vector_file row_size col_size threadsPerBlock Option 1/2"<<std::endl;
     exit(-1);
   }
   std::string A_file = argv[1];
   std::string x_file = argv[2];
   int n_row = std::stoi(argv[3]);
   int n_col = std::stoi(argv[4]);
+  int threadsPerBlock =  std::stoi(argv[5]);
+  int option = std::stoi(argv[6]); 
  
-  //Grid Calculation
-  int blockSize =  std::stoi(argv[5]);
-  int gridSize = (n_row + blockSize - 1) / blockSize;
-
   //Load data 
   auto A = load_csv(A_file, n_row, n_col);
   auto x = load_csv(x_file, n_col, 1);
-  
+
+  //Grid Calculation
+  int gridSize = -1;
+  if (option == 1)
+    gridSize = (n_row + threadsPerBlock - 1) / threadsPerBlock;
+  else if(option == 2)
+    gridSize = (n_row*32 + threadsPerBlock - 1) / threadsPerBlock; 
+
+  //Timing with CUDA events instead of CPU timers
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+
   double *A_device, *x_device, *y_device; 
   cudaMalloc (& A_device, n_row*n_col*sizeof(double));
   cudaMalloc (& x_device, n_col*sizeof(double));
@@ -65,15 +100,23 @@ int main(int argc, char** argv) {
   cudaMemcpy(A_device, A.data(), n_row*n_col*sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(x_device, x.data(), n_col*sizeof(double), cudaMemcpyHostToDevice);
   
-  
-  matrixXvec_kernel<<<gridSize, blockSize>>>(A_device, x_device, y_device, n_row, n_col);
+  cudaEventRecord(start);
+  if (option == 1)
+    matrixXvec_kernel<<<gridSize, threadsPerBlock>>>(A_device, x_device, y_device, n_row, n_col);
+  else if (option ==2)
+    matrixXvec_kernel_coalesced<<<gridSize, threadsPerBlock>>>(A_device, x_device, y_device, n_row, n_col);
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  printf("GPU-kernel time in milliseconds %f \n", milliseconds);
 
   std::vector<double> y_host(n_row);
   cudaMemcpy(y_host.data(), y_device, n_row*sizeof(double), cudaMemcpyDeviceToHost);
 
-  
+  //This is for verification with a CPU code 
   double y_norm = dot_product(y_host, y_host);
-  printf ("Norm of result %.15e \n", sqrt(y_norm));
+  //printf ("Norm of result %.15e \n", sqrt(y_norm));
 
   //Free CUDA memory
   cudaFree(A_device);
