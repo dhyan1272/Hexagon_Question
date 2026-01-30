@@ -70,5 +70,5 @@ This implementation solves the 2-D Poisson equation using:
 **Compile:**  g++ -O3 cg_solver_pre.cpp -o cg_solver
 
 **Run:**  
-`./cg_solver /path/to/poisson_dir
+`./cg_solver /path/to/poisson_dir`
 
