@@ -35,12 +35,17 @@ std::vector<T> load_csv(std::string path) {
   return data;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <directory_path>" << std::endl;
+    exit(-1);
+  }
+  std::string dir = argv[1];
+  
   double tolerance  = 1e-8;
   double iterations = 1000;
   
-  std::string dir = "poisson_128x128/";
   std::vector<int> rowptr = load_csv<int>(dir + "rowptr.csv");
   std::vector<int> col = load_csv<int>(dir + "col.csv");
   std::vector<double> val = load_csv<double>(dir + "val.csv");
