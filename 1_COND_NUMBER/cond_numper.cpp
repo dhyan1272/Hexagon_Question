@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/Eigenvalues>
+#include <chrono>
 
 Eigen::MatrixXd load_csv(const std::string& path, int rows, int cols) {
   
@@ -35,7 +36,7 @@ void get_gershgorin_bounds(const Eigen::MatrixXd& A, double& low, double& high) 
 int main(int argc, char** argv) {
   
   if(argc < 2){
-    std::cerr<<"Usage ./EXEC /PATH/TO/MATRIX_FILE MATRIX SIZE(DEFAULT 64)"<<std::endl;
+    std::cerr<<"Usage ./exec /path/to/matrix_file matrix size(default 64)"<<std::endl;
     exit(-1);
   }
   std::string A_file=argv[1];
@@ -48,11 +49,13 @@ int main(int argc, char** argv) {
   Eigen::MatrixXd A = load_csv(A_file, n, n);
            
   // 2. Power Iteration (lambda_max)
-  //Store rayleigh quotients to store
+  //Rayleigh quotients to store
   std::vector<double>rayleigh_max;
+  std::srand(50); 
   Eigen::VectorXd v = Eigen::VectorXd::Random(n);
   v.normalize();
   double l_max = 0;
+  auto start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < max_iter; ++i) {
     double l_old = l_max;
     Eigen::VectorXd w = A * v;
@@ -61,6 +64,10 @@ int main(int argc, char** argv) {
     rayleigh_max.push_back(l_max);
     if (abs(l_max - l_old) < tol) break;
   }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> diff = end - start;
+  std::cout << "Power Iteration Time: " << diff.count() << " s" << std::endl;
+
 
   //3 .Inverse Power Iteration via CG (lambda_min)
   //We solve Ax = v at each step to find the max eigenvalue of A^-1
