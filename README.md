@@ -1,4 +1,4 @@
-near Algebra and HPC Kernels
+Linear Algebra and HPC Kernels
 
 This repository contains implementations of numerical linear algebra algorithms
 and high-performance computing (HPC) kernels:
@@ -43,7 +43,7 @@ Eigen (header-only). Clone using
 `g++ -O3 -fopenmp Matrix_Vector_OMP.cpp -o Exec`
 
 **Run:**  
-`export OMP_NUM_THREADS=#THREADS` 
+`export OMP_NUM_THREADS=#THREADS`  
 `./Exec /path/to/A_file /path/to/x_file rwo_size col_size`
 
 ---
