@@ -40,11 +40,11 @@ Eigen (header-only). Clone using
 `./matvec_cpu /path/to/A_file /path/to/x_file matrix_size`
 
 **Compile (OpenMP):**  
-`g++ -O3 -fopenmp Matrix_Vector_OMP.cpp -o Exec
+`g++ -O3 -fopenmp Matrix_Vector_OMP.cpp -o Exec`
 
 **Run:** 
-  export OMP_NUM_THREADS=#THREADS 
-`./Exec /path/to/A_file /path/to/x_file rwo_size col_size
+`export OMP_NUM_THREADS=#THREADS` 
+`./Exec /path/to/A_file /path/to/x_file rwo_size col_size`
 
 ---
 
