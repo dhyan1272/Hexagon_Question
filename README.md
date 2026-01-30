@@ -1,32 +1,17 @@
-This repository contains an implementation of a Preconditioned Conjugate
+This repository contains implementation for 
+1) Estiamting the Condition Number of a Symmetric Positive Definite Matrix
+2) Dense Matrix Vector Multiplication on CPU (serial and OpenMP) and GPUs
+3) Pre-conditioned Conjugate Gradient for 2-D Poisson
 Gradient (PCG) solver for the 2-D Poisson equation using CSR storage.
 
-## Features
-- CSR SpMV
-- Jacobi preconditioning
-- Residual-based convergence
+## Build & Run (1)
+g++ -I path/to/eigen/library -O3 cond_numper.cpp
+./executable /path/to/matrix_file matrix_size 
 
-## Build & Run
-
-This repository contains an implementation of a Preconditioned Conjugate
-Gradient (PCG) solver for the 2-D Poisson equation using CSR storage.
-
-## Features
-- CSR SpMV
-- Jacobi preconditioning
-- Residual-based convergence
-
-## Build & Run
+## Build & Run (2)
 
 
-This repository contains an implementation of a Preconditioned Conjugate
-Gradient (PCG) solver for the 2-D Poisson equation using CSR storage.
+## Build & Run (3)
 
-## Features
-- CSR SpMV
-- Jacobi preconditioning
-- Residual-based convergence
-
-## Build & Run
 ...
 
