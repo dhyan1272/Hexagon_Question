@@ -1,17 +1,87 @@
-This repository contains implementation for 
-1) Estiamting the Condition Number of a Symmetric Positive Definite Matrix
-2) Dense Matrix Vector Multiplication on CPU (serial and OpenMP) and GPUs
-3) Pre-conditioned Conjugate Gradient for 2-D Poisson
-Gradient (PCG) solver for the 2-D Poisson equation using CSR storage.
+near Algebra and HPC Kernels
 
-## Build & Run (1)
-g++ -I path/to/eigen/library -O3 cond_numper.cpp
-./executable /path/to/matrix_file matrix_size 
+This repository contains implementations of numerical linear algebra algorithms
+and high-performance computing (HPC) kernels:
 
-## Build & Run (2)
+1. Condition Number Estimation for Symmetric Positive Definite (SPD) matrices  
+2. Dense Matrix–Vector Multiplication  
+   - CPU (serial)  
+   - CPU (OpenMP)  
+   - GPU (CUDA)  
+3. Preconditioned Conjugate Gradient (PCG) solver for the 2-D Poisson equation
+   using CSR (Compressed Sparse Row) storage
 
+---
 
-## Build & Run (3)
+## 1. Condition Number Estimation (SPD Matrices)
 
-...
+This implementation uses the Eigen library.
 
+**Dependency:**  
+Eigen (header-only). Clone using  
+`git clone https://gitlab.com/libeigen/eigen.git`
+
+**Compile:**  
+`g++ -O3 -I path/to/eigen cond_number.cpp -o cond_number`
+
+**Run:**  
+`./cond_number /path/to/matrix_file matrix_size`
+
+---
+
+## 2. Dense Matrix–Vector Multiplication
+
+### CPU (Serial / OpenMP)
+
+**Compile (serial):**  
+`g++ -O3 Matrix_Vector.cpp -o matvec_cpu`
+
+**Compile (OpenMP):**  
+`g++ -O3 -fopenmp Matrix_Vector.cpp -o matvec_cpu_omp`
+
+**Run:**  
+`./matvec_cpu /path/to/A_file /path/to/x_file matrix_size`
+
+---
+
+### GPU (CUDA)
+
+**Compile:**  
+`nvcc -O3 Matrix_Vector.cu -o matvec_gpu`
+
+**Run:**  
+`./matvec_gpu /path/to/A_file /path/to/x_file row_size col_size threadsPerBlock option`
+
+where  
+- `row_size`, `col_size` are the matrix dimensions  
+- `threadsPerBlock` specifies the CUDA block size  
+- `option` selects the kernel implementation (e.g., 1 or 2)
+
+---
+
+## 3. Preconditioned Conjugate Gradient (PCG)
+
+This implementation solves the 2-D Poisson equation using:
+- CSR sparse matrix storage  
+- Jacobi preconditioning  
+- Residual-based convergence criteria
+
+---
+
+## Software and Hardware
+
+- Compilers: g++, nvcc  
+- Parallelization: OpenMP, CUDA  
+- Precision: double  
+- Library: Eigen
+
+---
+
+## Notes
+
+Dense matrix–vector multiplication benefits from regular memory access and higher
+arithmetic intensity, while sparse matrix–vector multiplication is dominated by
+irregular memory accesses and is therefore memory-bandwidth bound. PCG convergence
+degrades with grid refinement due to the increasing condition number of the
+Poisson operator.
+ihis repository contains implementation for 
