@@ -42,7 +42,7 @@ Eigen (header-only). Clone using
 **Compile (OpenMP):**  
 `g++ -O3 -fopenmp Matrix_Vector_OMP.cpp -o Exec`
 
-**Run:** 
+**Run:**  
 `export OMP_NUM_THREADS=#THREADS` 
 `./Exec /path/to/A_file /path/to/x_file rwo_size col_size`
 
