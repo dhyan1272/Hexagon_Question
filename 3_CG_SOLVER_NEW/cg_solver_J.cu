@@ -58,13 +58,11 @@ __global__ void update_direction_kernel(int N, double beta, const double* z, dou
 __global__ void dot_product_kernel(int N, const double* a, const double* b, double* result) {
  
   int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if(i>=N) return;
 
   __shared__ double shared_data[threadsPerBlock];
   int tid = threadIdx.x;
 
-  double val = a[i] * b[i];
-  shared_data[tid] = val;
+  shared_data[tid] = (i<N) ? a[i] * b[i]: 0.0;
   __syncthreads();
 
   for (int s = blockDim.x / 2; s > 0; s >>= 1) {
@@ -83,7 +81,7 @@ int main(int argc, char* argv[]) {
   std::string dir = argv[1];
   //Convergence parameters
   double tolerance  = 1e-8;
-  double iterations = 10;
+  double iterations = 1000;
  
   //ReadInputs & Calculate N
   std::vector<int> rowptr = load_csv<int>(dir + "rowptr.csv");
@@ -144,6 +142,10 @@ int main(int argc, char* argv[]) {
   
   //Iterations
   for (int i = 0; i < iterations; i++){
+   
+    cudaMemset(device_dirAdir, 0, sizeof(double));
+    cudaMemset(device_rz, 0, sizeof(double));
+    
     //A \times direction
     spmv_kernel<<<nBlocks, threadsPerBlock>>>(N, device_rowptr, device_col, device_val, device_dir, device_Adir);
      
