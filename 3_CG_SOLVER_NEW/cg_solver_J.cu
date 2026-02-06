@@ -72,6 +72,14 @@ __global__ void dot_product_kernel(int N, const double* a, const double* b, doub
   if (tid == 0) atomicAdd(result, shared_data[0]);
 }
 
+double dot_product(const std::vector<double>& a, const std::vector<double>& b) {
+ double res = 0.0;
+ for (size_t i = 0; i < a.size(); ++i) res += a[i] * b[i];
+ return res;
+}
+
+
+
 int main(int argc, char* argv[]) {
 
   if (argc < 2) {
@@ -81,7 +89,7 @@ int main(int argc, char* argv[]) {
   std::string dir = argv[1];
   //Convergence parameters
   double tolerance  = 1e-8;
-  double iterations = 1000;
+  int iterations = 120;
  
   //ReadInputs & Calculate N
   std::vector<int> rowptr = load_csv<int>(dir + "rowptr.csv");
@@ -94,7 +102,8 @@ int main(int argc, char* argv[]) {
  
   //Device Pointers
   int* device_rowptr, *device_col;
-  double* device_val, *device_x, *device_Adir, *device_invM, *device_r, *device_z, *device_dir, *device_rz, *device_dirAdir;
+  double* device_val, *device_x, *device_Adir, *device_invM, *device_r, *device_z, *device_dir,
+          *device_rz, *device_dirAdir, *device_rnorm;
   
   //Memory Allocation
   cudaMalloc(&device_rowptr, (N + 1) * sizeof(int));
@@ -109,6 +118,7 @@ int main(int argc, char* argv[]) {
   cudaMalloc(&device_dir, N*sizeof(double));   //Search direction
   cudaMalloc(&device_rz, sizeof(double));   //Search direction 
   cudaMalloc(&device_dirAdir, sizeof(double));   //Search direction 
+  cudaMalloc(&device_rnorm, sizeof(double));   //Search direction 
   
   //Extract Diagonal for Jacobi Preconditioner (Done in CPU as done once)
   std::vector<double> invM(N);
@@ -131,9 +141,12 @@ int main(int argc, char* argv[]) {
  
   //Launch precondiotion kernel giving z from r
   apply_jacobi_kernel<<<nBlocks, threadsPerBlock>>>(N, device_invM, device_r, device_z);
-  //Initially copy dire from z
+  //Initially copy direction from z
   cudaMemcpy(device_dir, device_z, N * sizeof(double), cudaMemcpyDeviceToDevice);
   
+  //Do once in CPU norm of b
+  double b_norm = sqrt(dot_product(b, b));
+
   //Dot Product of r and z
   dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_z, device_rz);
   double r_old=0.0;
@@ -145,6 +158,7 @@ int main(int argc, char* argv[]) {
    
     cudaMemset(device_dirAdir, 0, sizeof(double));
     cudaMemset(device_rz, 0, sizeof(double));
+    cudaMemset(device_rnorm, 0, sizeof(double));
     
     //A \times direction
     spmv_kernel<<<nBlocks, threadsPerBlock>>>(N, device_rowptr, device_col, device_val, device_dir, device_Adir);
@@ -158,7 +172,17 @@ int main(int argc, char* argv[]) {
     double alpha=r_old/temp;
     update_x_r_kernel<<<nBlocks, threadsPerBlock>>>(N, alpha, device_dir, device_Adir, device_x, device_r); 
     std::cout<<"Iteration: "<< i <<"  "<<temp<<"  "<<alpha<<std::endl;
-    
+
+    //Check if new residual meets requirements
+    dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_r, device_rnorm);
+    double r_norm = 0;
+    cudaMemcpy(&r_norm, device_rnorm, sizeof(double), cudaMemcpyDeviceToHost);
+    auto residual_norm = sqrt(r_norm)/b_norm;
+    if (residual_norm  < tolerance) {
+      std::cout << "Converged in " << i << " iterations.\n";
+      break;
+    }
+ 
     //Apply Preconditioning to new residual
     apply_jacobi_kernel<<<nBlocks, threadsPerBlock>>>(N, device_invM, device_r, device_z);
     
