@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
   std::string dir = argv[1];
   //Convergence parameters
   double tolerance  = 1e-8;
-  int iterations = 120;
+  int iterations = 1000;
  
   //ReadInputs & Calculate N
   std::vector<int> rowptr = load_csv<int>(dir + "rowptr.csv");
@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
   dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_z, device_rz);
   double r_old=0.0;
   cudaMemcpy(&r_old, device_rz, sizeof(double), cudaMemcpyDeviceToHost);
-  std::cout<<"Initial rz: "<< r_old << std::endl;
+  //std::cout<<"Initial rz: "<< r_old << std::endl;
   
   //Iterations
   for (int i = 0; i < iterations; i++){
@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
     //Update x and residual
     double alpha=r_old/temp;
     update_x_r_kernel<<<nBlocks, threadsPerBlock>>>(N, alpha, device_dir, device_Adir, device_x, device_r); 
-    std::cout<<"Iteration: "<< i <<"  "<<temp<<"  "<<alpha<<std::endl;
+    //std::cout<<"Iteration: "<< i <<"  "<<temp<<"  "<<alpha<<std::endl;
 
     //Check if new residual meets requirements
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_r, device_rnorm);
@@ -179,7 +179,7 @@ int main(int argc, char* argv[]) {
     cudaMemcpy(&r_norm, device_rnorm, sizeof(double), cudaMemcpyDeviceToHost);
     auto residual_norm = sqrt(r_norm)/b_norm;
     if (residual_norm  < tolerance) {
-      std::cout << "Converged in " << i << " iterations.\n";
+      std::cout << "Converged in " << i << " iterations with normalized residual: " << residual_norm << std::endl;
       break;
     }
  
@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
     //Update direction and update rz
     update_direction_kernel<<<nBlocks, threadsPerBlock>>>(N, beta, device_z, device_dir);
     r_old = r_new;
-    std::cout<<"Iteration: "<< i <<"  "<<r_new<<std::endl;
+    //std::cout<<"Iteration: "<< i <<"  "<<r_new<<std::endl;
   }
   
   //Debugging
