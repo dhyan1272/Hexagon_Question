@@ -77,7 +77,9 @@ This implementation solves the 2-D Poisson equation using:
 `./cg_solver /path/to/poisson_dir`
 
 
-## 4a. Preconditioned Conjugate Gradient (PCG) Jacobian in parallel
+## 4. Prarallel PCG and SSOR
+
+### Jacobi Preconditioning in parallel
 
 This implementation solves the 2-D Poisson in CUDA equation using:
 - CSR sparse matrix storage  
@@ -85,12 +87,12 @@ This implementation solves the 2-D Poisson in CUDA equation using:
 - Residual-based convergence criteria
 
 ---
-**Compile:**  nvcc -O3 -arch=sm_61 --use_fast_math -Xcompiler "-O3" cg_solver_J.cu -o cg_solver_J
+**Compile:**  `nvcc -O3 -arch=sm_61 --use_fast_math -Xcompiler "-O3" cg_solver_J.cu -o cg_solver_J`
 
 **Run:**  
 `./cg_solver_J /path/to/poisson_dir`
 
-## 4b. Preconditioned SSOR
+### SSOR
 
 This implementation solves the 2-D Poisson equation using:
 - CSR sparse matrix storage  
@@ -98,9 +100,8 @@ This implementation solves the 2-D Poisson equation using:
 - Residual-based convergence criteria
 
 ---
-**Compile:**  g++ -O3 cg_solver_SSOR.cpp -o cg_solver_SSOR
+**Compile:**  `g++ -O3 cg_solver_SSOR.cpp -o cg_solver_SSOR`
 
 **Run:**  
 `./cg_solver_SSOR /path/to/poisson_dir`
-
 
