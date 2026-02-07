@@ -4,6 +4,7 @@
 #include <numeric>
 #include <fstream>
 #include <string>
+#include <chrono>
 #include <cuda.h>
 
 #define threadsPerBlock 256
@@ -86,6 +87,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "Usage: " << argv[0] << " <directory_path>" << std::endl;
     exit(-1);
   }
+
   std::string dir = argv[1];
   //Convergence parameters
   double tolerance  = 1e-8;
@@ -153,28 +155,65 @@ int main(int argc, char* argv[]) {
   cudaMemcpy(&r_old, device_rz, sizeof(double), cudaMemcpyDeviceToHost);
   //std::cout<<"Initial rz: "<< r_old << std::endl;
   
+  
+  //Timers
+  auto t0 = std::chrono::high_resolution_clock::now(); 
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  float spmv_time=0.0f; 
+  float dot_time=0.0f;
+  float jacobi_time=0.0f;
+  float update_xr_time =0.0f;
+  float dir_update_time=0.0f;
+    
   //Iterations
   for (int i = 0; i < iterations; i++){
-   
+  
     cudaMemset(device_dirAdir, 0, sizeof(double));
     cudaMemset(device_rz, 0, sizeof(double));
     cudaMemset(device_rnorm, 0, sizeof(double));
     
+    cudaEventRecord(start);
     //A \times direction
     spmv_kernel<<<nBlocks, threadsPerBlock>>>(N, device_rowptr, device_col, device_val, device_dir, device_Adir);
-     
+    //Timing 
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float ms = 0.0f;
+    cudaEventElapsedTime(&ms, start, stop);
+    spmv_time += ms;     
+
+    cudaEventRecord(start);
     //Dot product to update x and residual
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_Adir, device_dir, device_dirAdir);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    ms=0;
+    cudaEventElapsedTime(&ms, start, stop);
+    dot_time +=ms;
+
     double temp = 0;
     cudaMemcpy(&temp, device_dirAdir, sizeof(double), cudaMemcpyDeviceToHost);
-
     //Update x and residual
     double alpha=r_old/temp;
+    
+    cudaEventRecord(start);
     update_x_r_kernel<<<nBlocks, threadsPerBlock>>>(N, alpha, device_dir, device_Adir, device_x, device_r); 
-    //std::cout<<"Iteration: "<< i <<"  "<<temp<<"  "<<alpha<<std::endl;
-
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    ms=0;
+    cudaEventElapsedTime(&ms, start, stop);
+    update_xr_time +=ms;
+    
+    cudaEventRecord(start);
     //Check if new residual meets requirements
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_r, device_rnorm);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    ms=0;
+    cudaEventElapsedTime(&ms, start, stop);
+    dot_time +=ms;
     double r_norm = 0;
     cudaMemcpy(&r_norm, device_rnorm, sizeof(double), cudaMemcpyDeviceToHost);
     auto residual_norm = sqrt(r_norm)/b_norm;
@@ -183,28 +222,53 @@ int main(int argc, char* argv[]) {
       break;
     }
  
+    cudaEventRecord(start);
     //Apply Preconditioning to new residual
     apply_jacobi_kernel<<<nBlocks, threadsPerBlock>>>(N, device_invM, device_r, device_z);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    ms=0;
+    cudaEventElapsedTime(&ms, start, stop);
+    jacobi_time +=ms;
     
+
+    cudaEventRecord(start);
     //Dot product to find r_(t+1)z_(t+1)
     //double r_new = gpu_dot(N, d_r, d_z, d_dot_temp);
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_z, device_rz);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&ms, start, stop);
+    dot_time +=ms;
     double r_new =0;
     cudaMemcpy(&r_new, device_rz, sizeof(double), cudaMemcpyDeviceToHost);
     double beta = r_new / r_old;
     
     //Update direction and update rz
+    cudaEventRecord(start);
     update_direction_kernel<<<nBlocks, threadsPerBlock>>>(N, beta, device_z, device_dir);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&ms, start, stop);
+    dir_update_time +=ms;
+
     r_old = r_new;
     //std::cout<<"Iteration: "<< i <<"  "<<r_new<<std::endl;
   }
   
-  //Debugging
-  if(true)
-    return;
-  std::vector<double> y_host(N);
-  cudaMemcpy(y_host.data(), device_Adir, N * sizeof(double), cudaMemcpyDeviceToHost);
-  for (int k=0; k<N; k++) 
-    if(y_host[k] !=0) std::cout<<"y=Ax: "<< y_host[k] << std::endl;
+  cudaDeviceSynchronize();  // ensure all kernels finished
+  std::cout << "Total SpMV kernel time: "<< spmv_time << " ms\n";
+  std::cout << "Total Dot product time: "<< dot_time << " ms\n";
+  std::cout << "Jacobi time: "<< jacobi_time << " ms\n";
+  std::cout << "XR_update time: "<< update_xr_time << " ms\n";
+  std::cout << "Dir_update time: "<< dir_update_time << " ms\n";
+
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  auto t1 = std::chrono::high_resolution_clock::now();
+  double seconds = std::chrono::duration<double>(t1 - t0).count();
+  std::cout << "Total wall time: " << 1000*seconds << "ms\n";
+
   return 0;
 }
