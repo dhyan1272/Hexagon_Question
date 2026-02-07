@@ -36,56 +36,42 @@ std::vector<T> load_csv(std::string path) {
 }
 
 
-void apply_ssor(int n, std::vector<int>& rowptr, std::vector<int>& cols, std::vector<double>& vals, std::vector< double>& r, 
-                std::vector<double>& z, const double& omega) {
 
+void apply_ssor(int n, const std::vector<int>& rowptr, const std::vector<int>& cols, 
+                const std::vector<double>& vals, const std::vector<double>& r, 
+                std::vector<double>& z, double omega) {
+    
   std::vector<double> y(n, 0.0);
-  // 1. Forward Sweep: Solve (D + omega*L) y = r
-  // We iterate from row 0 to n-1 (Forward Substitution)
+  std::vector<double> diag_vals(n);
+
+  // 1. Forward Sweep: Solve (D + omega*L) Y = r
   for (int i = 0; i < n; ++i) {
-    double diag = 0.0;
     double sum_Ly = 0.0;
+    double d_ii = 0.0;
     for (int k = rowptr[i]; k < rowptr[i + 1]; ++k) {
-      int column = cols[k];
-      double value = vals[k];
-      if (column < i) {
-        // Lower triangular part
-        sum_Ly += value * y[column];
+      if (cols[k] < i) {
+        sum_Ly += vals[k] * y[cols[k]];
       } 
-      else if (column == i) {
-        // Diagonal part
-        diag = value;
+      else if (cols[k] == i) {
+        d_ii = vals[k];
       }
     }
-    y[i] = (r[i] - omega * sum_Ly) / diag;
+    diag_vals[i] = d_ii;
+    y[i] = (r[i] - omega * sum_Ly) / d_ii;
   }
-
-  // 2. Intermediate scaling
-  //To maintain symmetry, we incorporate the (2-omega) factor and Diagonal
-  for (int i = 0; i < n; ++i) {
-    y[i] = y[i] * (2.0 - omega);
-  }
-
-  // 3. Backward Sweep: Solve (D + omega*U) z = D * y
-  //We iterate from row n-1 down to 0 (Backward Substitution)
+  // 2. & 3. Scaling and Backward Sweep
+  // Solves (D + omega*U) Z = omega*(2-omega)* D \times Y
+  double factor = omega * (2.0 - omega);
   for (int i = n - 1; i >= 0; --i) {
-    double diag = 0.0; 
     double sum_Uz = 0.0;
     for (int k = rowptr[i]; k < rowptr[i + 1]; ++k) {
-      int column = cols[k];
-      double value = vals[k];
-      if (column > i) {
-        // Upper triangular part
-        sum_Uz += value * z[column];
-      } else if (column == i) {
-        // Diagonal part
-        diag = value;
+      if (cols[k] > i) {
+        sum_Uz += vals[k] * z[cols[k]];
       }
-    }
-    z[i] = (y[i] * diag - omega * sum_Uz) / diag;
+    }                                                                                                                                 
+    z[i] = (factor * diag_vals[i] * y[i] - omega * sum_Uz) / diag_vals[i];
   }
 }
-
 
 int main(int argc, char* argv[]) {
   
