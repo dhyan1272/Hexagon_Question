@@ -124,20 +124,20 @@ __global__ void ssor_forward_level_kernel(
     double* __restrict__ y,
     const double omega){
 
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;  //Current thread ID Thread Id
-    int idx = start + tid;                            //Index in flatrow this thread should work on 
-    if (idx >= end) return;
-    int i = flat_rows[idx];                           //Actual row in flarRow this thread shouuld work on
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;  //Current thread ID Thread Id
+  int idx = start + tid;                            //Index in flatrow this thread should work on 
+  if (idx >= end) return;
+  int i = flat_rows[idx];                           //Actual row in flarRow this thread shouuld work on
 
-    double sum_Ly=0.0;
-    double d_ii=0.0;
-    for (int k = rowptr[i]; k < rowptr[i+1]; k++) {
-      if(cols[k]<i)      
-        sum_Ly += vals[k] * y[cols[k]];
-      else if(cols[k] == i)
-        d_ii=vals[k];      
-    }
-    y[i] = (r[i] - omega*sum_Ly) / d_ii;
+  double sum_Ly=0.0;
+  double d_ii=0.0;
+  for (int k = rowptr[i]; k < rowptr[i+1]; k++) {
+    if(cols[k]<i)      
+      sum_Ly += vals[k] * y[cols[k]];
+    else if(cols[k] == i)
+      d_ii=vals[k];      
+  }
+  y[i] = (r[i] - omega*sum_Ly) / d_ii;
 }
 
 __global__ void ssor_backward_level_kernel(
@@ -150,21 +150,21 @@ __global__ void ssor_backward_level_kernel(
     double* __restrict__ z,
     const double omega){
 
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx = start + tid;
-    if (idx >= end) return;
-    int i = flat_rows[idx];
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  int idx = start + tid;
+  if (idx >= end) return;
+  int i = flat_rows[idx];
 
-    double factor = omega*(2-omega);
-    double d_ii = 0.0;
-    double sum_Uz = 0.0;
-    for (int k = rowptr[i]; k < rowptr[i+1]; k++){
-      if (cols[k]>i)
-        sum_Uz += vals[k]*z[cols[k]]; 
-      else if (cols[k] == i) 
-        d_ii = vals[k];
-    }
-    z[i] = (factor * d_ii * y[i]- omega*sum_Uz)/d_ii;
+  double factor = omega*(2-omega);
+  double d_ii = 0.0;
+  double sum_Uz = 0.0;
+  for (int k = rowptr[i]; k < rowptr[i+1]; k++){
+    if (cols[k]>i)
+      sum_Uz += vals[k]*z[cols[k]]; 
+    else if (cols[k] == i) 
+      d_ii = vals[k];
+  }
+  z[i] = (factor * d_ii * y[i]- omega*sum_Uz)/d_ii;
 }
 
 __global__ void spmv_kernel(int N, const int* rowptr, const int* col, const double* val, const double* x, double* y) {
@@ -264,8 +264,7 @@ int main(int argc, char* argv[]) {
   //Max Loops and tolerance 
   double tolerance  = 1e-8;
   int iterations = 1000;
- 
- 
+  
   //Read Inputs and calulate N
   std::vector<int> rowptr = load_csv<int>(dir + "rowptr.csv");
   std::vector<int> cols = load_csv<int>(dir + "col.csv");
@@ -370,9 +369,7 @@ int main(int argc, char* argv[]) {
     ssor_gpu(N, device_rowptr, device_cols, device_vals, device_r, device_z, device_flat_rows_low, level_offsets_low, 
            device_flat_rows_u, level_offsets_u, omega);
   
-
     //Dot product to find r_(t+1)z_(t+1)
-    //double r_new = gpu_dot(N, d_r, d_z, d_dot_temp);
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_z, device_rz);
     double r_new =0;
     cudaMemcpy(&r_new, device_rz, sizeof(double), cudaMemcpyDeviceToHost);
@@ -384,6 +381,5 @@ int main(int argc, char* argv[]) {
     r_old = r_new;
     //std::cout<<"Iteration: "<< i <<"  "<<r_new<<std::endl;
   }
-
   return 0;
 }
