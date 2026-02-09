@@ -230,7 +230,6 @@ void ssor_gpu( const int N,
   cudaMemset(device_y, 0, N * sizeof(double));              
 
   // Forward sweep
-  std::cout << "==== Forward sweep ====" << std::endl;
   int num_levels_low = level_offsets_low.size() - 1;
   for (int lvl = 0; lvl < num_levels_low; lvl++) {
     int start = level_offsets_low[lvl];
@@ -243,7 +242,6 @@ void ssor_gpu( const int N,
   }
 
   // Backward sweep
-  std::cout << "==== Backward sweep ====" << std::endl;
   int num_levels_u = level_offsets_u.size() - 1;
   for (int lvl = 0; lvl < num_levels_u; lvl++) {
     int start = level_offsets_u[lvl];
@@ -265,7 +263,7 @@ int main(int argc, char* argv[]) {
   std::string dir = argv[1];
   //Max Loops and tolerance 
   double tolerance  = 1e-8;
-  int iterations = 1;
+  int iterations = 1000;
  
  
   //Read Inputs and calulate N
@@ -335,7 +333,7 @@ int main(int argc, char* argv[]) {
   //Set init direction as z
   cudaMemcpy(device_dir, device_z, N * sizeof(double), cudaMemcpyDeviceToDevice);
   
-  dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_z, device_z, device_rz);
+  dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_z, device_rz);
   double r_old=0.0;
   cudaMemcpy(&r_old, device_rz, sizeof(double), cudaMemcpyDeviceToHost);
   std::cout<<"Initial preconditioning:   "<< r_old<< std::endl;
@@ -347,7 +345,7 @@ int main(int argc, char* argv[]) {
     cudaMemset(device_rnorm, 0, sizeof(double));
     
     //A \times direction
-    spmv_kernel<<<1, threadsPerBlock>>>(N, device_rowptr, device_cols, device_vals, device_dir, device_Adir);
+    spmv_kernel<<<nBlocks, threadsPerBlock>>>(N, device_rowptr, device_cols, device_vals, device_dir, device_Adir);
     
     //Dot product to update x and residual
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_Adir, device_dir, device_dirAdir);
@@ -356,7 +354,8 @@ int main(int argc, char* argv[]) {
     //Update x and residual
     double alpha=r_old/temp; 
     update_x_r_kernel<<<nBlocks, threadsPerBlock>>>(N, alpha, device_dir, device_Adir, device_x, device_r); 
-    
+    //std::cout<<"Iteration temp alpha:   "<< i<<" "<<temp <<" " <<alpha<<std::endl;
+   
     //Check if new residual meets requirements
     dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_r, device_rnorm);
     double r_norm = 0;
