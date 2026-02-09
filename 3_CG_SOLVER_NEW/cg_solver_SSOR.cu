@@ -192,7 +192,6 @@ __global__ void update_direction_kernel(int N, double beta, const double* z, dou
   d[i] = z[i] + beta * d[i];
 }
 
-
 // Dot Product with Warp Reduction (Partial Sums)
 __global__ void dot_product_kernel(int N, const double* a, const double* b, double* result) {
  
@@ -240,7 +239,6 @@ void ssor_gpu( const int N,
                                                             device_vals, device_r, device_y, omega);
     cudaDeviceSynchronize(); // ensure this level finished
   }
-
   // Backward sweep
   int num_levels_u = level_offsets_u.size() - 1;
   for (int lvl = 0; lvl < num_levels_u; lvl++) {
@@ -253,6 +251,7 @@ void ssor_gpu( const int N,
     cudaDeviceSynchronize(); // ensure this level finished
   }
 }
+
 int main(int argc, char* argv[]) {
   
   //Program basic inputs
@@ -305,8 +304,7 @@ int main(int argc, char* argv[]) {
   //Set initial direction as z instead of residual
   //If no precondioning, set initial direction as resiual as no concept of z
   cudaMemcpy(device_dir, device_z, N * sizeof(double), cudaMemcpyDeviceToDevice);
-   
-  
+     
   //SSOR parameters and get z from r using SSOR
   double omega = 1.7; // Relaxation factor
 
@@ -335,10 +333,8 @@ int main(int argc, char* argv[]) {
   dot_product_kernel<<<nBlocks, threadsPerBlock>>>(N, device_r, device_z, device_rz);
   double r_old=0.0;
   cudaMemcpy(&r_old, device_rz, sizeof(double), cudaMemcpyDeviceToHost);
-  std::cout<<"Initial preconditioning:   "<< r_old<< std::endl;
 
   for (int i = 0; i < iterations; i++){
-  
     cudaMemset(device_dirAdir, 0, sizeof(double));
     cudaMemset(device_rz, 0, sizeof(double));
     cudaMemset(device_rnorm, 0, sizeof(double));

@@ -105,3 +105,12 @@ This implementation solves the 2-D Poisson equation using:
 **Run:**  
 `./cg_solver_SSOR /path/to/poisson_dir`
 
+### SSOR in parallel
+
+**Compile:**  `nvcc -O3 -arch=sm_61 --use_fast_math -Xcompiler "-O3" cg_solver_J.cu -o cg_solver_SSOR_GPU`
+
+**Run:**  
+`./cg_solver_SSOR_GPU /path/to/poisson_dir`
+
+
+
