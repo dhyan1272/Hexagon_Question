@@ -245,7 +245,7 @@ void ssor_gpu( const int N,
   // Backward sweep
   std::cout << "==== Backward sweep ====" << std::endl;
   int num_levels_u = level_offsets_u.size() - 1;
-  for (int lvl = 0; lvl < num_levels_u - 1; lvl++) {
+  for (int lvl = 0; lvl < num_levels_u; lvl++) {
     int start = level_offsets_u[lvl];
     int end   = level_offsets_u[lvl + 1];
     int nrows = end - start;
