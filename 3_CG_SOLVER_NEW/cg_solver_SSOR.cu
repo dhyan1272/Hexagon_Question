@@ -250,6 +250,7 @@ void ssor_gpu( const int N,
                                                              device_vals, device_y, device_z, omega);
     cudaDeviceSynchronize(); // ensure this level finished
   }
+  cudaFree(device_y);
 }
 
 int main(int argc, char* argv[]) {
@@ -377,5 +378,18 @@ int main(int argc, char* argv[]) {
     r_old = r_new;
     //std::cout<<"Iteration: "<< i <<"  "<<r_new<<std::endl;
   }
+  cudaFree(device_rowptr);
+  cudaFree(device_cols);
+  cudaFree(device_vals);
+  cudaFree(device_x);
+  cudaFree(device_Adir);
+  cudaFree(device_r);
+  cudaFree(device_z);
+  cudaFree(device_dir);
+  // Free scalars
+  cudaFree(device_rz);
+  cudaFree(device_dirAdir);
+  cudaFree(device_rnorm);
+
   return 0;
 }

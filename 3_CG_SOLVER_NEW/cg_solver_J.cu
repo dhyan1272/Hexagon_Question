@@ -7,7 +7,7 @@
 #include <chrono>
 #include <cuda.h>
 
-#define threadsPerBlock 256
+#define threadsPerBlock 128
 
 template <typename T>
 std::vector<T> load_csv(std::string path) {
@@ -269,6 +269,20 @@ int main(int argc, char* argv[]) {
   auto t1 = std::chrono::high_resolution_clock::now();
   double seconds = std::chrono::duration<double>(t1 - t0).count();
   std::cout << "Total wall time: " << 1000*seconds << "ms\n";
+
+  cudaFree(device_rowptr);
+  cudaFree(device_col);
+  cudaFree(device_val);
+  cudaFree(device_x);
+  cudaFree(device_Adir);
+  cudaFree(device_r);
+  cudaFree(device_z);
+  cudaFree(device_dir);
+
+  // Free scalars
+  cudaFree(device_rz);
+  cudaFree(device_dirAdir);
+  cudaFree(device_rnorm);
 
   return 0;
 }
